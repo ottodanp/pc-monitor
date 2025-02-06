@@ -2,7 +2,7 @@
 
 ## Description
 
-This is a simple PC monitor that can be used to monitor the CPU, memory usage, active processes, and other statistics of
+A simple PC monitor that can be used to monitor the CPU, memory usage, active processes, and other statistics of
 a computer remotely without the need for port forwarding or any other network configuration.
 
 ## Features
