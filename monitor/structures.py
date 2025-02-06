@@ -1,5 +1,5 @@
 from json import dumps
-from typing import List
+from typing import List, Dict, Any
 
 
 class ActiveProcess:
@@ -63,6 +63,17 @@ class ActiveProcess:
     def __repr__(self) -> str:
         return self.__str__()
 
+    def as_payload(self) -> Dict[str, Any]:
+        return {
+            'name': self.name,
+            'description': self.description,
+            'command': self.command,
+            'pid': self.pid,
+            'creation_date': self.creation_date,
+            'priority': self.priority,
+            'thread_count': self.thread_count
+        }
+
 
 class MemoryUsage:
     _bytes: int
@@ -97,6 +108,15 @@ class ResourceUsage:
     def memory(self) -> MemoryUsage:
         return self._memory
 
+    def as_payload(self) -> Dict[str, Any]:
+        return {
+            'cpu': self.cpu,
+            'memory': {
+                'bytes': self.memory.bytes,
+                'percent': self.memory.percent
+            }
+        }
+
 
 class Snapshot:
     _active_processes: List[ActiveProcess]
@@ -113,3 +133,9 @@ class Snapshot:
     @property
     def resource_usage(self) -> ResourceUsage:
         return self._resource_usage
+
+    def as_payload(self) -> Dict[str, Any]:
+        return {
+            'active_processes': [process.as_payload() for process in self.active_processes],
+            'resource_usage': self.resource_usage.as_payload()
+        }

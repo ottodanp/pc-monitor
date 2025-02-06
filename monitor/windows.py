@@ -5,9 +5,11 @@ from typing import List
 import psutil
 import wmi
 from PIL import ImageGrab
+from aiohttp import ClientSession
+from base64 import b64encode
 
 from structures import ActiveProcess, ResourceUsage, MemoryUsage, Snapshot
-from util import make_directory
+from util import make_directory, get_latest_image_hash
 
 
 def get_avg_cpu_usage() -> float:
@@ -52,12 +54,6 @@ async def monitor_thread(f: wmi.WMI, q: asyncio.Queue[Snapshot], delay: int):
         await asyncio.sleep(delay)
 
 
-async def screen_grab_thread(delay: int):
-    while True:
-        get_screen_grab()
-        await asyncio.sleep(delay)
-
-
 def get_screen_grab():
     make_directory("image_grabs")
     snapshot = ImageGrab.grab()
@@ -65,27 +61,40 @@ def get_screen_grab():
     snapshot.save(save_path)
 
 
-async def display_thread(q: asyncio.Queue[Snapshot]):
+async def screen_grab_thread(delay: int):
+    while True:
+        get_screen_grab()
+        await asyncio.sleep(delay)
+
+
+async def display_thread(q: asyncio.Queue[Snapshot], session: ClientSession, host: str, screen_grab_path: str):
+    image_hash = ""
+
     while True:
         snapshot = await q.get()
-        print(snapshot.active_processes)
-        print(snapshot.resource_usage.cpu)
-        print(snapshot.resource_usage.memory.percent, snapshot.resource_usage.memory.bytes)
-        print("\n\n")
+        payload = snapshot.as_payload()
+        new_hash = get_latest_image_hash(screen_grab_path)
+
+        #if new_hash != image_hash:
+        #    with open(screen_grab_path, "rb") as f:
+        #        data = b64encode(f.read()).decode("utf-8")
+        #        payload['image'] = data
+
+        #    image_hash = new_hash
+
+        print(payload)
+        async with session.post(f'http://{host}/snapshot', json=payload) as response:
+            print(await response.text())
+
+        await asyncio.sleep(1)
 
 
-async def main():
-    process_queue = asyncio.Queue()
+async def main(process_queue: asyncio.Queue[Snapshot], session: ClientSession, host: str):
     f = wmi.WMI()
     print("Monitoring processes...")
 
     await asyncio.gather(
         monitor_thread(f, process_queue, 1),
-        display_thread(process_queue),
+        display_thread(process_queue, session, host, "image_grabs\\snapshot.jpg"),
         screen_grab_thread(10)
     )
-
-
-if __name__ == '__main__':
-    get_screen_grab()
-    asyncio.run(main())
