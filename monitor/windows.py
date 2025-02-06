@@ -4,8 +4,10 @@ from typing import List
 
 import psutil
 import wmi
+from PIL import ImageGrab
 
 from structures import ActiveProcess, ResourceUsage, MemoryUsage, Snapshot
+from util import make_directory
 
 
 def get_avg_cpu_usage() -> float:
@@ -46,7 +48,21 @@ async def monitor_thread(f: wmi.WMI, q: asyncio.Queue[Snapshot], delay: int):
             )
         )
 
+        get_screen_grab()
         await asyncio.sleep(delay)
+
+
+async def screen_grab_thread(delay: int):
+    while True:
+        get_screen_grab()
+        await asyncio.sleep(delay)
+
+
+def get_screen_grab():
+    make_directory("image_grabs")
+    snapshot = ImageGrab.grab()
+    save_path = "image_grabs\\snapshot.jpg"
+    snapshot.save(save_path)
 
 
 async def display_thread(q: asyncio.Queue[Snapshot]):
@@ -65,9 +81,11 @@ async def main():
 
     await asyncio.gather(
         monitor_thread(f, process_queue, 1),
-        display_thread(process_queue)
+        display_thread(process_queue),
+        screen_grab_thread(10)
     )
 
 
 if __name__ == '__main__':
+    get_screen_grab()
     asyncio.run(main())
