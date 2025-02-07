@@ -4,7 +4,7 @@ from typing import Tuple
 
 from aiohttp import ClientSession
 
-from util import generate_auth_code
+from util import generate_auth_code, LoopPolicy
 
 
 async def initialize_monitored_client(session: ClientSession, host: str) -> Tuple[str, str]:
@@ -30,5 +30,5 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.set_event_loop_policy(MyPolicy())
+    asyncio.set_event_loop_policy(LoopPolicy())
     asyncio.run(main())

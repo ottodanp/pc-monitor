@@ -8,7 +8,7 @@ from random import choice
 CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 
-class MyPolicy(asyncio.DefaultEventLoopPolicy):
+class LoopPolicy(asyncio.DefaultEventLoopPolicy):
     def new_event_loop(self):
         selector = selectors.SelectSelector()
         return asyncio.SelectorEventLoop(selector)
