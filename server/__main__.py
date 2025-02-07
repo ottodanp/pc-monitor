@@ -1,9 +1,12 @@
+from os import mkdir
+from os.path import isdir
 from typing import Dict
 from uuid import uuid4
 
 from quart import Quart, request
+from quart.datastructures import FileStorage
 
-from util import hash_auth_code
+from .util import hash_auth_code
 
 
 class MonitoredClient:
@@ -42,6 +45,19 @@ class MonitorServer(Quart):
         return {"id": client.id}
 
     async def receive_snapshot(self):
+        args = request.args
+        client_id = args.get('id')
+        if client_id is None:
+            return "No client id provided", 400
+
+        files = await request.files
+        body = await request.form
+        image = files['file']
+        if not isdir("image_grabs"):
+            mkdir("image_grabs")
+
+        await image.save(f"image_grabs/{client_id}.jpg")
+        # print(body)
         return {"status": "success"}
 
     def run(self, *args, **kwargs):

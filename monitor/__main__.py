@@ -24,9 +24,10 @@ async def main():
     process_queue = asyncio.Queue()
     async with ClientSession() as session:
         client_id, auth_code = await initialize_monitored_client(session, "127.0.0.1:5000")
-        print("Enter the following auth code on the client to begin monitoring")
-        print("Auth Code: ", auth_code)
-        await runner(process_queue, session, "127.0.0.1:5000")
+
+    print("Enter the following auth code on the client to begin monitoring")
+    print("Auth Code: ", auth_code)
+    await runner(process_queue, "127.0.0.1:5000", client_id)
 
 
 if __name__ == '__main__':

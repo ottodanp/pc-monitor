@@ -1,12 +1,13 @@
 import asyncio
 import os
 from base64 import b64encode
+from json import dumps
 from typing import List
 
 import psutil
 import wmi
 from PIL import ImageGrab
-from aiohttp import ClientSession
+from aiohttp import ClientSession, FormData
 
 from structures import ActiveProcess, ResourceUsage, MemoryUsage, Snapshot
 from util import make_directory, get_latest_image_hash
@@ -67,45 +68,43 @@ async def screen_grab_thread(delay: int):
         await asyncio.sleep(delay)
 
 
-async def display_thread(q: asyncio.Queue[Snapshot], session: ClientSession, host: str, screen_grab_path: str):
+async def display_thread(q: asyncio.Queue[Snapshot], session: ClientSession, host: str, screen_grab_path: str, client_id: str):
     image_hash = ""
 
     while True:
         snapshot = await q.get()
         payload = snapshot.as_payload()
         new_hash = get_latest_image_hash(screen_grab_path)
+        form_data = FormData()
 
         if new_hash != image_hash:
-            with open(screen_grab_path, "rb") as f:
-                data = b64encode(f.read()).decode("utf-8")
-                payload['image'] = data
+            f = open(screen_grab_path, "rb")
+            form_data.add_field("file", f, filename=screen_grab_path, content_type="image/jpeg")
 
             image_hash = new_hash
 
-        print(payload)
+        form_data.add_field("json", dumps(payload))
+
         async with session.post(
-                f'http://{host}/snapshot',
-                json={},
-                headers={
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
+                f'http://{host}/snapshot?id={client_id}',
+                data=form_data
         ) as response:
             print(await response.text())
 
         await asyncio.sleep(1)
 
 
-async def main(process_queue: asyncio.Queue[Snapshot], session: ClientSession, host: str):
+async def main(process_queue: asyncio.Queue[Snapshot], host: str, client_id: str):
     f = wmi.WMI()
     print("Monitoring processes...")
 
     loop = asyncio.get_event_loop()
 
-    await asyncio.gather(
-        monitor_thread(f, process_queue, 1),
-        display_thread(process_queue, session, host, "image_grabs\\snapshot.jpg"),
-        screen_grab_thread(10)
-    )
+    async with ClientSession() as session:
+        await asyncio.gather(
+            monitor_thread(f, process_queue, 1),
+            display_thread(process_queue, session, host, "image_grabs\\snapshot.jpg", client_id),
+            screen_grab_thread(10)
+        )
 
     loop.run_forever()
