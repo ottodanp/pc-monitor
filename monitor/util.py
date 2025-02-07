@@ -1,9 +1,17 @@
+import asyncio
+import selectors
 from hashlib import sha256
 from os import mkdir
 from os.path import isdir, isfile
 from random import choice
 
 CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+
+class MyPolicy(asyncio.DefaultEventLoopPolicy):
+    def new_event_loop(self):
+        selector = selectors.SelectSelector()
+        return asyncio.SelectorEventLoop(selector)
 
 
 def generate_auth_code() -> str:

@@ -1,12 +1,12 @@
 import asyncio
 import os
+from base64 import b64encode
 from typing import List
 
 import psutil
 import wmi
 from PIL import ImageGrab
 from aiohttp import ClientSession
-from base64 import b64encode
 
 from structures import ActiveProcess, ResourceUsage, MemoryUsage, Snapshot
 from util import make_directory, get_latest_image_hash
@@ -75,15 +75,22 @@ async def display_thread(q: asyncio.Queue[Snapshot], session: ClientSession, hos
         payload = snapshot.as_payload()
         new_hash = get_latest_image_hash(screen_grab_path)
 
-        #if new_hash != image_hash:
-        #    with open(screen_grab_path, "rb") as f:
-        #        data = b64encode(f.read()).decode("utf-8")
-        #        payload['image'] = data
+        if new_hash != image_hash:
+            with open(screen_grab_path, "rb") as f:
+                data = b64encode(f.read()).decode("utf-8")
+                payload['image'] = data
 
-        #    image_hash = new_hash
+            image_hash = new_hash
 
         print(payload)
-        async with session.post(f'http://{host}/snapshot', json=payload) as response:
+        async with session.post(
+                f'http://{host}/snapshot',
+                json={},
+                headers={
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+        ) as response:
             print(await response.text())
 
         await asyncio.sleep(1)
@@ -93,8 +100,12 @@ async def main(process_queue: asyncio.Queue[Snapshot], session: ClientSession, h
     f = wmi.WMI()
     print("Monitoring processes...")
 
+    loop = asyncio.get_event_loop()
+
     await asyncio.gather(
         monitor_thread(f, process_queue, 1),
         display_thread(process_queue, session, host, "image_grabs\\snapshot.jpg"),
         screen_grab_thread(10)
     )
+
+    loop.run_forever()

@@ -22,6 +22,9 @@ class MonitoredClient:
     def auth_code(self) -> str:
         return self._auth_code
 
+    def __eq__(self, other):
+        return self.id == other.id
+
 
 class MonitorServer(Quart):
     _monitored_clients: Dict[str, MonitoredClient] = {}
@@ -39,11 +42,11 @@ class MonitorServer(Quart):
         return {"id": client.id}
 
     async def receive_snapshot(self):
-        return "hi"
+        return {"status": "success"}
 
     def run(self, *args, **kwargs):
         self.route('/init')(self.initialize_monitored_client)
-        self.route('/snapshot', methods=['POST'])(self.receive_snapshot)
+        self.route('/snapshot', methods=["POST"])(self.receive_snapshot)
         super().run(*args, **kwargs)
 
 
