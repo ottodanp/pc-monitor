@@ -7,10 +7,10 @@ from aiohttp import ClientSession
 from util import generate_auth_code, LoopPolicy
 
 
-async def initialize_monitored_client(session: ClientSession, host: str) -> Tuple[str, str]:
+async def initialize_monitored_client(session: ClientSession, host: str, nickname: str) -> Tuple[str, str]:
     auth_code = generate_auth_code()
 
-    async with session.get(f'http://{host}/init?auth_code={auth_code}') as response:
+    async with session.get(f'http://{host}/init?auth_code={auth_code}&nickname={nickname}') as response:
         data = await response.json()
         return data['id'], auth_code
 
@@ -21,9 +21,10 @@ async def main():
     else:
         from monitor.linux import main as runner
 
+    nickname = input("Enter the nickname: ")
     process_queue = asyncio.Queue()
     async with ClientSession() as session:
-        client_id, auth_code = await initialize_monitored_client(session, "127.0.0.1:5000")
+        client_id, auth_code = await initialize_monitored_client(session, "127.0.0.1:5000", nickname)
 
     print("Enter the following auth code on the client to begin monitoring")
     print("Auth Code: ", auth_code)

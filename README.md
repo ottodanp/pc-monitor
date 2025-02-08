@@ -19,6 +19,7 @@ a computer remotely without the need for port forwarding or any other network co
 - [ ] Monitor system uptime
 - [x] Screenshot the current screen
 - [ ] Record the screen
+- [ ] Cross-platform support
 
 ## Libraries
 
@@ -27,6 +28,7 @@ a computer remotely without the need for port forwarding or any other network co
 - psutil
 - wmi
 - pillow
+- aiohttp
 
 ### Server
 
